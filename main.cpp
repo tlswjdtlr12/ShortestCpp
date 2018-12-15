@@ -1,5 +1,179 @@
 /*
-#include <iostream> // 내가 찾던것!! 언디렉션
+#include <cstdio>
+#include <algorithm>
+#include <queue>
+#include <cstdlib>
+#include <pthread.h>
+#include <vector>
+#include <functional>
+#include <set>
+// 컴파일 법 : g++ -o a.out main.cpp -std=c++11
+using namespace std;
+
+#define MAX_VER 10000005
+#define MAX_HOUSE 64
+#define MAX_PROBLEM 100
+#define INF 18446744073709551615LL
+#define MAX_CORE 96
+
+vector<pair<uint64_t, uint64_t> > edge[MAX_VER];
+uint64_t num_of_vertices, num_of_edge, num_of_problem, num_of_house[MAX_PROBLEM], result[MAX_PROBLEM];
+set<uint64_t> house[MAX_PROBLEM];
+bool problem_solved[MAX_PROBLEM];
+pthread_t thd[MAX_PROBLEM];
+int used_thd_count;
+
+
+
+void * run(void * data){
+    uint64_t pnum = (uint64_t)data;
+    for(auto j : house[pnum]){
+
+        priority_queue<pair<uint64_t, uint64_t>, vector<pair<uint64_t, uint64_t> >, greater<pair<uint64_t, uint64_t> > > pq;
+        pq.push({0, j});
+
+        vector<uint64_t> distance(num_of_vertices, INF);
+        vector<bool> flag(num_of_vertices, false);
+        distance[j] = 0;
+
+        while(!pq.empty()){
+            auto temp = pq.top();
+            pq.pop();
+            uint64_t now = temp.second;
+
+            if (flag[now]) continue;
+            else flag[now] = true;
+
+            auto it = house[pnum].find(now);
+
+            if(now != j && it != house[pnum].end())
+                break;
+
+            if(temp.first > result[pnum])
+                break;
+
+            for(int k=0; k<edge[now].size(); k++){
+
+                uint64_t next = edge[now][k].first;
+                if(flag[next]) continue;
+
+                uint64_t weight = edge[now][k].second;
+
+                if(distance[next] > distance[now] + weight){
+
+                    distance[next] = distance[now] + weight;
+                    pq.push({distance[next], next});
+                }
+            }
+        }
+
+        uint64_t min = INF;
+
+        for(auto k : house[pnum]){
+            if(j==k) continue;
+            if(distance[k] < min)
+                min = distance[k];
+        }
+        if(result[pnum] > min)
+            result[pnum] = min;
+    }
+}
+
+int main(int argc, char ** argv){
+    FILE * input = fopen("input.txt", "r");
+    FILE * output = fopen("output.txt", "w");
+
+    fscanf(input, "%llu", &num_of_vertices);
+    fscanf(input, "%llu", &num_of_edge);
+
+    for(int i = 0; i < num_of_edge; i++){
+
+        uint64_t v1, v2, d;
+        fscanf(input, "%llu %llu %llu", &v1, &v2, &d);
+
+        edge[v1].push_back({v2, d});
+        edge[v2].push_back({v1, d});
+    }
+    fscanf(input, "%llu", &num_of_problem);
+
+
+    for(uint64_t i = 0; i < num_of_problem; i++){
+
+        fscanf(input, "%llu", &num_of_house[i]);
+
+        for(int j = 0; j < num_of_house[i]; j++){
+            uint64_t temp;
+            fscanf(input, "%llu", &temp);
+            house[i].insert(temp);
+        }
+        result[i] = INF;
+    }
+
+
+    if(num_of_problem <= MAX_CORE){
+        for(uint64_t i = 0; i < num_of_problem; i++)
+            pthread_create(&thd[i], NULL, run, (void*)i);
+
+        for(uint64_t i = 0; i < num_of_problem; i++)
+            pthread_join(thd[i], NULL);
+    }
+    else{
+        int i;
+        for(i = 0; i < num_of_problem / MAX_CORE; i++){
+            for(uint64_t j = 0; j < MAX_CORE; j++)
+                pthread_create(&thd[j], NULL, run, (void*)(j + i * MAX_CORE));
+            for(uint64_t j = 0; j < MAX_CORE; j++)
+                pthread_join(thd[j], NULL);
+        }
+        for(uint64_t j = 0; j < num_of_problem % MAX_CORE; j++)
+            pthread_create(&thd[j], NULL, run, (void *)(j + i * MAX_CORE));
+        for(uint64_t j = 0; j < num_of_problem % MAX_CORE; j++)
+            pthread_join(thd[j], NULL);
+
+        // for(uint64_t i = 0; i < MAX_CORE; i++)
+        //    pthread_create(&thd[i], NULL, run, (void *)i);
+
+        // for(uint64_t i = 0 ; i < MAX_CORE; i++)
+        //    pthread_join(thd[i], NULL);
+
+        // for(uint64_t i = MAX_CORE; i < num_of_problem; i++)
+        //    pthread_create(&thd[i - MAX_CORE], NULL, run, (void*)i);
+
+        // for(uint64_t i = MAX_CORE; i < num_of_problem; i++)
+        //    pthread_join(thd[i - MAX_CORE], NULL);
+    }
+
+    for(int i = 0; i < num_of_problem; i++){
+        fprintf(output, "%llu\n", result[i]);
+    }
+    fclose(input);
+    fclose(output);
+    return 0;
+}
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <iostream>
 #include <utility>
 #include <queue>
 using namespace std;
@@ -100,73 +274,5 @@ int main()
 
     shortestPath(adj, V, 3);
 
-    // heap에다가 배열 선언해야할듯?
     return 0;
 }
-*/
-
-/* 얘는 디렉션 있는 버젼
-#include <cstdio>
-#include <vector>
-#include <set>
-#include <queue>
-#include <algorithm>
-
-using namespace std;
-#define ii pair<int,int>
-#define pb push_back
-int n;int e,source;
-vector<ii> g[100000];
-int dist[100000];
-bool marked[100000];
-void apply_dijkstra()
-{
-    set<ii > s;
-    s.insert(ii(0,source));
-    dist[source] = 0;marked[source] = 1;
-    while(!s.empty())
-    {
-        ii p = *s.begin();
-        s.erase(p);
-        marked[p.second] = 2;
-        for(int i=0;i<g[p.second].size();i++)
-            if(marked[g[p.second][i].second]==0)
-            {
-                s.insert(ii(dist[p.second]+g[p.second][i].first,g[p.second][i].second));
-                marked[g[p.second][i].second] = 1;
-                dist[g[p.second][i].second] = dist[p.second]+g[p.second][i].first;
-            }
-            else if(marked[g[p.second][i].second]==1 && dist[g[p.second][i].second] > dist[p.second]+g[p.second][i].first)
-            {
-                s.erase(ii(dist[g[p.second][i].second],g[p.second][i].second));
-                s.insert(ii(dist[p.second]+g[p.second][i].first,g[p.second][i].second));
-                dist[g[p.second][i].second] =  dist[p.second]+g[p.second][i].first;
-            }
-    }
-    printf("Shortest Distances are\n");
-    for(int i=1;i<=n;i++)
-    {
-        printf("Node %d - %d\n",i,dist[i]);
-    }
-    printf("\n");
-}
-
-int main()
-{
-    printf("Enter the number of vertices:\n");
-    scanf("%d",&n);
-    printf("Enter the number of edges:\n");
-    int e;scanf("%d",&e);
-    printf("Enter the edges and their weights:\n");
-    for(int i=0;i<e;i++)
-    {
-        int x,y,w;
-        scanf("%d%d%d",&x,&y,&w);
-        g[x].pb(ii(w,y));
-    }
-    printf("Enter the source:\n");
-    scanf("%d",&source);
-    apply_dijkstra();
-    return 0;
-}
- */
