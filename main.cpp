@@ -150,6 +150,7 @@ int main(int argc, char ** argv){
     fclose(output);
     return 0;
 }
+
 */
 
 
@@ -171,86 +172,133 @@ int main(int argc, char ** argv){
 
 
 
-
-
-#include <iostream>
-#include <utility>
+//#include <set>
+//#include <iostream>
+//#include <utility>
+//#include <queue>
+#include <cstdio>
+#include <algorithm>
 #include <queue>
+#include <cstdlib>
+#include <pthread.h>
+#include <vector>
+#include <functional>
+#include <set>
 using namespace std;
-# define INF 0x3f3f3f3f
+#define MAX_VER 10000005
+#define MAX_HOUSE 64
+#define MAX_PROBLEM 100
+#define INF 18446744073709551615LL
 
+#define MAX_CORE 96
+
+//vector<pair<uint64_t, uint64_t> > edge[MAX_VER];
+uint64_t num_of_vertices, num_of_edge, num_of_problem, num_of_house[MAX_PROBLEM], result[MAX_PROBLEM];
+set<uint64_t> house[MAX_PROBLEM];
+bool problem_solved[MAX_PROBLEM];
+pthread_t thd[MAX_PROBLEM];
+int used_thd_count;
 // iPair ==> Integer Pair
-typedef pair<int, int> iPair;
+typedef pair<uint64_t, uint64_t> iPair;
+vector<iPair > adj[MAX_VER];
 
 // To add an edge
-void addEdge(vector <pair<int, int> > adj[], int u,
-                                     int v, int wt)
+void addEdge(vector <pair<uint64_t, uint64_t> > adj[], uint64_t u, uint64_t v, uint64_t wt)
 {
-    adj[u].push_back(make_pair(v, wt));
-    adj[v].push_back(make_pair(u, wt));
+    adj[u].push_back({v, wt});
+    adj[v].push_back({u, wt});
 }
 
-
+//shortestPath(adj, V, 3);
 // Prints shortest paths from src to all other vertices
-void shortestPath(vector<pair<int,int> > adj[], int V, int src)
+//void shortestPath(vector<pair<int,int> > adj[], int V, int src)
+void * shortestPath(void * data)
 {
     // Create a priority queue to store vertices that
     // are being preprocessed. This is weird syntax in C++.
     // Refer below link for details of this syntax
     // http://geeksquiz.com/implement-min-heap-using-stl/
-    priority_queue< iPair, vector <iPair> , greater<iPair> > pq;
-
-    // Create a vector for distances and initialize all
-    // distances as infinite (INF)
-    vector<int> dist(V, INF);
-
-    // Insert source itself in priority queue and initialize
-    // its distance as 0.
-    pq.push(make_pair(0, src));
-    dist[src] = 0;
-
-    // Looping till priority queue becomes empty (or all
-    //distances are not finalized)
-    while (!pq.empty())
+    uint64_t pnum = (uint64_t)data;
+    for(auto j : house[pnum])
     {
-        // The first vertex in pair is the minimum distance
-        // vertex, extract it from priority queue.
-        // vertex label is stored in second of pair (it
-        // has to be done this way to keep the vertices
-        // sorted distance (distance must be first item
-        // in pair)
-        int u = pq.top().second;
-        pq.pop();
+        priority_queue<iPair, vector<iPair>, greater<iPair> > pq;
 
-        // Get all adjacent of u.
-        for (auto x : adj[u])
-        {
-            // Get vertex label and weight of current adjacent
-            // of u.
-            int v = x.first;
-            int weight = x.second;
+        // Create a vector for distances and initialize all
+        // distances as infinite (INF)
+        vector<uint64_t> dist(num_of_vertices, INF);
+        vector<bool> flag(num_of_vertices, false);
 
-            // If there is shorted path to v through u.
-            if (dist[v] > dist[u] + weight)
-            {
-                // Updating distance of v
-                dist[v] = dist[u] + weight;
-                pq.push(make_pair(dist[v], v));
+        // Insert source itself in priority queue and initialize
+        // its distance as 0.
+        pq.push({0, j});
+        dist[j] = 0;
+
+        // Looping till priority queue becomes empty (or all
+        //distances are not finalized)
+        while (!pq.empty()) {
+            // The first vertex in pair is the minimum distance
+            // vertex, extract it from priority queue.
+            // vertex label is stored in second of pair (it
+            // has to be done this way to keep the vertices
+            // sorted distance (distance must be first item
+            // in pair)
+
+//            uint64_t now = pq.top().second;
+//            pq.pop();
+            auto temp = pq.top();
+            pq.pop();
+            uint64_t now = temp.second;
+
+            if (flag[now]) continue;
+            else flag[now] = true;
+
+            auto it = house[pnum].find(now);
+
+            if(now != j && it != house[pnum].end())
+                break;
+
+            if(temp.first > result[pnum])
+                break;
+
+            // Get all adjacent of u.
+            for (auto x : adj[now]) {
+                // Get vertex label and weight of current adjacent
+                // of u.
+//                int v = x.first;
+                uint64_t next = x.first;
+                if(flag[next]) continue;
+//                int weight = x.second;
+                uint64_t weight = x.second;
+
+                // If there is shorted path to v through u.
+                if (dist[next] > dist[now] + weight) {
+                    // Updating distance of v
+                    dist[next] = dist[now] + weight;
+                    pq.push({dist[next], next});
+                }
             }
-        }
-    }
 
+        }
+        uint64_t min = INF;
+        for(auto k : house[pnum]){
+            if(j==k) continue;
+            if(dist[k] < min) min = dist[k];
+        }
+        if(result[pnum] > min) result[pnum] = min;
+
+
+    }
     // Print shortest distances stored in dist[]
-    printf("Vertex Distance from Source\n");
-    for (int i = 0; i < V; ++i)
-        printf("%d \t\t %d\n", i, dist[i]);
+//    printf("Vertex Distance from Source\n");
+//    for (int i = 0; i < V; ++i)
+//        printf("%d \t\t %d\n", i, dist[i]);
 }
 
 // Driver program to test methods of graph class
 int main()
 {
-    int V = 9;
-    vector<iPair > adj[V];
+    FILE * input = fopen("input.txt", "r");
+    FILE * output = fopen("output.txt", "w");
 
     // making above shown graph
 //    addEdge(adj, 0, 1, 4);
@@ -268,11 +316,40 @@ int main()
 //    addEdge(adj, 6, 8, 6);
 //    addEdge(adj, 7, 8, 7);
 
-    addEdge(adj, 1, 2, 5);
-    addEdge(adj, 2, 3, 6);
-    addEdge(adj, 1, 3, 1);
+    fscanf(input, "%llu", &num_of_vertices);
+    fscanf(input, "%llu", &num_of_edge);
 
-    shortestPath(adj, V, 3);
+    for(int i = 0; i < num_of_edge; i++){
+        uint64_t v1, v2, d;
+        fscanf(input, "%llu %llu %llu", &v1, &v2, &d);
+        addEdge(adj, v1, v2, d);
+    }
+    fscanf(input, "%llu", &num_of_problem);
 
+//    addEdge(adj, 1, 2, 5);
+//    addEdge(adj, 2, 3, 6);
+//    addEdge(adj, 1, 3, 1);
+
+    for(uint64_t i = 0; i < num_of_problem; i++){
+
+        fscanf(input, "%llu", &num_of_house[i]);
+
+        for(int j = 0; j < num_of_house[i]; j++){
+            uint64_t temp;
+            fscanf(input, "%llu", &temp);
+            house[i].insert(temp);
+        }
+        result[i] = INF;
+    }
+
+    //shortestPath(adj, V, 3);
+    for(uint64_t j=0; j< num_of_problem; j++)
+        shortestPath((void*)j);
+
+    for(int i = 0; i < num_of_problem; i++){
+        fprintf(output, "%llu\n", result[i]);
+    }
+    fclose(input);
+    fclose(output);
     return 0;
 }
