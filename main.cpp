@@ -22,7 +22,11 @@ bool problem_solved[MAX_PROBLEM];
 pthread_t thd[MAX_PROBLEM];
 int used_thd_count;
 
-
+void addEdge(vector <pair<uint64_t, uint64_t> > adj[], uint64_t u, uint64_t v, uint64_t wt)
+{
+    adj[u].push_back({v, wt});
+    adj[v].push_back({u, wt});
+}
 
 void * run(void * data){
     uint64_t pnum = (uint64_t)data;
@@ -42,13 +46,13 @@ void * run(void * data){
             uint64_t now = pq.top().second;
             pq.pop();
 
-            if (flag[now]) continue;
-            else flag[now] = true;
-
-            auto it = house[pnum].find(now);
-
-            if(now != j && it != house[pnum].end())
-                break;
+//       이부분도 속도개선용     if (flag[now]) continue;
+//            else flag[now] = true;
+//
+//            auto it = house[pnum].find(now);
+//
+//            if(now != j && it != house[pnum].end())
+//                break;
 
             //if(temp.first > result[pnum])
              //   break;
@@ -107,9 +111,9 @@ int main(int argc, char ** argv){
 
         uint64_t v1, v2, d;
         fscanf(input, "%llu %llu %llu", &v1, &v2, &d);
-
-        edge[v1].push_back({v2, d});
-        edge[v2].push_back({v1, d});
+        addEdge(edge, v1, v2, d);
+        //edge[v1].push_back({v2, d});
+        //edge[v2].push_back({v1, d});
     }
     fscanf(input, "%llu", &num_of_problem);
 
